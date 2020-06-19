@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer,PorterStemmer 
+nltk.download('wordnet')
 
 def decodeHTML(data):
     data = BeautifulSoup(data,"lxml").text
@@ -16,42 +18,48 @@ def normaliseTextToLower(data):
     return data.lower()
 
 def tokenizeAndPunctuationRemoval(data):
-    tokenizedList=[]
-    for token in RegexpTokenizer('\w+').tokenize(data):
-        tokenizedList.append(token)
+    tokenizedList=[token for token in RegexpTokenizer('\w+').tokenize(data)]
     return tokenizedList
 
 def removeNumbers(dataList):
-    dataListRefined = []
-    for token in dataList:
-        if not (token.isnumeric()):
-            dataListRefined.append(token)
-    # print("HELO")
+    dataListRefined = [token for token in dataList if not (token.isnumeric())]
     return dataListRefined
 
-def removeStopWords(dataList): #stopwords are words like "the", "in" etc
+def removeStopWords(dataList): 
     dataList = list(set(dataList))
     stopWords = set(stopwords.words("english"))
     nonStoppedWords = list(token for token in dataList if token not in stopWords)
-    convertToText = " ".join(nonStoppedWords)
-    return convertToText
+    return nonStoppedWords
+
+def wordLemmatizer(dataList):
+    lemmatizer = WordNetLemmatizer()
+    lemmatizedText = [lemmatizer.lemmatize(token) for token in dataList]
+    return lemmatizedText
+
+def stemming(dataList):
+    stemmer = PorterStemmer()
+    return " ".join([stemmer.stem(token) for token in dataList])
+
 
 def cleanData(data):
-    return (removeStopWords(removeNumbers(tokenizeAndPunctuationRemoval(normaliseTextToLower(decodeHTML(data))))))
+    data = data.lower()
+    tokenizedList=[token for token in RegexpTokenizer('\w+').tokenize(data)]
+    dataList = [token for token in tokenizedList if not (token.isnumeric())]
+    stopWords = set(stopwords.words("english"))
+    nonStoppedWords = list(token for token in dataList if token not in stopWords)
+    lemmatizer = WordNetLemmatizer()
+    lemmatizedText = [lemmatizer.lemmatize(token) for token in nonStoppedWords]
+    # stemmer = PorterStemmer()
+    return " ".join(lemmatizedText)
 
 
 if __name__ == "__main__":
     f = open('./data/moddedData.json',)
     data = json.load(f)
-    d = {}
-    cnt = 0
+    # print(data)
     for i in data:
-        cnt+=1
-        finData = []
-        textData = data[i]['0']
-        finData.append(data[i]['1'])
-        finData.append(data[i]['2'])
-        finData.append(cleanData(textData))
-        d[cnt] = finData
+        print(i)
+        data[i]["text"] = cleanData(data[i]["text"])
+        print(data[i])
     with open('./data/cleanData.json', 'w') as fp:
-        json.dump(d, fp)
+        json.dump(data, fp)
